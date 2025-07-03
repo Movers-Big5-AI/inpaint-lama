@@ -9,15 +9,18 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import webdataset
-from omegaconf import open_dict, OmegaConf
-from skimage.feature import canny
-from skimage.transform import rescale, resize
-from torch.utils.data import Dataset, IterableDataset, DataLoader, DistributedSampler, ConcatDataset
-
-from saicinpainting.evaluation.data import InpaintingDataset as InpaintingEvaluationDataset, \
-    OurInpaintingDataset as OurInpaintingEvaluationDataset, ceil_modulo, InpaintingEvalOnlineDataset
+from omegaconf import OmegaConf, open_dict
+from saicinpainting.evaluation.data import \
+    InpaintingDataset as InpaintingEvaluationDataset
+from saicinpainting.evaluation.data import (InpaintingEvalOnlineDataset,
+                                            MoversInpaintingDataset)
+from saicinpainting.evaluation.data import \
+    OurInpaintingDataset as OurInpaintingEvaluationDataset
+from saicinpainting.evaluation.data import ceil_modulo
 from saicinpainting.training.data.aug import IAAAffine2, IAAPerspective2
 from saicinpainting.training.data.masks import get_mask_generator
+from torch.utils.data import (ConcatDataset, DataLoader, Dataset,
+                              DistributedSampler, IterableDataset)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -82,7 +85,7 @@ class ImgSegmentationDataset(Dataset):
         img = self.transform(image=img)['image']
         img = np.transpose(img, (2, 0, 1))
         mask = self.mask_generator(img)
-        segm, segm_classes= self.load_semantic_segm(path)
+        segm, segm_classes = self.load_semantic_segm(path)
         result = dict(image=img,
                       mask=mask,
                       segm=segm,
@@ -94,7 +97,7 @@ class ImgSegmentationDataset(Dataset):
         mask = cv2.imread(segm_path, cv2.IMREAD_GRAYSCALE)
         mask = cv2.resize(mask, (self.out_size, self.out_size))
         tensor = torch.from_numpy(np.clip(mask.astype(int)-1, 0, None))
-        ohe = F.one_hot(tensor.long(), num_classes=self.semantic_seg_n_classes) # w x h x n_classes
+        ohe = F.one_hot(tensor.long(), num_classes=self.semantic_seg_n_classes)  # w x h x n_classes
         return ohe.permute(2, 0, 1).float(), tensor.unsqueeze(0)
 
 
@@ -249,7 +252,7 @@ def make_default_train_dataloader(indir, kind='default', out_size=512, mask_gen_
 def make_default_val_dataset(indir, kind='default', out_size=512, transform_variant='default', **kwargs):
     if OmegaConf.is_list(indir) or isinstance(indir, (tuple, list)):
         return ConcatDataset([
-            make_default_val_dataset(idir, kind=kind, out_size=out_size, transform_variant=transform_variant, **kwargs) for idir in indir 
+            make_default_val_dataset(idir, kind=kind, out_size=out_size, transform_variant=transform_variant, **kwargs) for idir in indir
         ])
 
     LOGGER.info(f'Make val dataloader {kind} from {indir}')
@@ -260,6 +263,8 @@ def make_default_val_dataset(indir, kind='default', out_size=512, transform_vari
 
     if kind == 'default':
         dataset = InpaintingEvaluationDataset(indir, **kwargs)
+    elif kind == 'movers':
+        dataset = MoversInpaintingDataset(indir, **kwargs)
     elif kind == 'our_eval':
         dataset = OurInpaintingEvaluationDataset(indir, **kwargs)
     elif kind == 'img_with_segm':
