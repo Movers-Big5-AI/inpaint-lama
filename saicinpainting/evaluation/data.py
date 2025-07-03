@@ -83,11 +83,13 @@ class InpaintingDataset(Dataset):
 
 
 class MoversInpaintingDataset(Dataset):
-    def __init__(self, _, image_path, mask_path, pad_out_to_modulo=8):
+    def __init__(self, image_path, mask_path, pad_out_to_modulo=8):
         self.image_path = image_path
         self.mask_path = mask_path
 
-        self.filenames = sorted(os.listdir(image_path))
+        image_files = set(os.listdir(image_path))
+        mask_files = set(os.listdir(mask_path))
+        self.filenames = sorted(list(image_files & mask_files))
 
         self.pad_out_to_modulo = pad_out_to_modulo
 

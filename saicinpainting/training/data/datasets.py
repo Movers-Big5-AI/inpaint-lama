@@ -12,8 +12,7 @@ import webdataset
 from omegaconf import OmegaConf, open_dict
 from saicinpainting.evaluation.data import \
     InpaintingDataset as InpaintingEvaluationDataset
-from saicinpainting.evaluation.data import (InpaintingEvalOnlineDataset,
-                                            MoversInpaintingDataset)
+from saicinpainting.evaluation.data import InpaintingEvalOnlineDataset
 from saicinpainting.evaluation.data import \
     OurInpaintingDataset as OurInpaintingEvaluationDataset
 from saicinpainting.evaluation.data import ceil_modulo
@@ -263,8 +262,6 @@ def make_default_val_dataset(indir, kind='default', out_size=512, transform_vari
 
     if kind == 'default':
         dataset = InpaintingEvaluationDataset(indir, **kwargs)
-    elif kind == 'movers':
-        dataset = MoversInpaintingDataset(indir, **kwargs)
     elif kind == 'our_eval':
         dataset = OurInpaintingEvaluationDataset(indir, **kwargs)
     elif kind == 'img_with_segm':
